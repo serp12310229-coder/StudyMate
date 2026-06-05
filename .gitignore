@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.env
+venv/
+.studymate.json
+.DS_Store
+Thumb.db

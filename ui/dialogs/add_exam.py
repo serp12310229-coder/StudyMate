@@ -10,7 +10,6 @@ from ui.dialogs.calendar_dialog import CalendarDialog
 
 
 class _DateButton(QFrame):
-    """클릭 또는 포커스 후 Enter 키로 캘린더를 열도록 설계된 커스텀 위젯."""
     clicked = pyqtSignal()
 
     def __init__(self, text="", parent=None):
@@ -51,7 +50,6 @@ class _DateButton(QFrame):
             self.clicked.emit()
 
     def keyPressEvent(self, e):
-        # 포커스가 이 위젯에 있을 때 Enter → 캘린더 열기
         if e.key() in (Qt.Key_Return, Qt.Key_Enter):
             self.clicked.emit()
         else:
@@ -114,26 +112,26 @@ class AddExamDialog(QDialog):
 
         is_ = f"QLineEdit{{background:{T('GL')};border:1.5px solid {T('BDR')};border-radius:8px;padding:9px 12px;font-size:10pt;color:{T('TXT')};}}QLineEdit:focus{{border:2px solid {T('RED')};background:{T('CARD')};}}"
 
-        # ① 과목명 -> Enter -> 날짜 버튼으로 포커스만 이동
+        # 1. 과목명 -> Enter -> 날짜 버튼으로 포커스만 이동
         self.f_subj = QLineEdit()
         self.f_subj.setPlaceholderText("예) 운영체제")
         self.f_subj.setStyleSheet(is_)
         self.f_subj.returnPressed.connect(lambda: QTimer.singleShot(0, lambda: self._date_btn.setFocus()))
 
-        # 날짜 버튼 (커스텀 위젯: Enter/click 분리)
+        # 2. 날짜 버튼 (커스텀 위젯: Enter/click 분리)
         self._date_btn = _DateButton("  날짜를 선택하세요")
         ic = svg_icon("deadline", 15, T("SUB"))
         if ic:
             self._date_btn.set_icon(ic, 15)
         self._date_btn.clicked.connect(self._pick_date)
 
-        # ③ 시험 장소
+        # 3. 시험 장소
         self.f_place = QLineEdit()
         self.f_place.setPlaceholderText("예) 공학관 101호")
         self.f_place.setStyleSheet(is_)
         self.f_place.returnPressed.connect(lambda: QTimer.singleShot(0, lambda: self.f_range.setFocus()))
-
-        # ④ 시험 범위
+        
+        # 4. 시험 범위
         self.f_range = QLineEdit()
         self.f_range.setPlaceholderText("예) 1강~6강, 교재 p.1~150")
         self.f_range.setStyleSheet(is_)

@@ -5,7 +5,6 @@ from PyQt5.QtGui     import *
 from datetime        import datetime
 from core.theme      import T, dk, dday_color
 from core.data       import calc_progress, new_task
-from core.assets     import svg_icon, svg_pixmap
 from ui.base_widgets import (lbl, hdiv, sbadge, dbadge, mk_btn,
                               ghost_btn, icon_btn, prog_bar, ConfirmDialog, InputDialog)
 from ui.dialogs.add_assignment import AddAssignmentDialog
@@ -29,7 +28,7 @@ def _dt(d):
 
 
 def _clear_layout(layout):
-    # 재귀적으로 레이아웃 내부의 위젯/레이아웃을 제거
+    # 레이아웃 내부의 위젯/레이아웃을 제거
     while layout.count():
         item = layout.takeAt(0)
         if item is None:
@@ -60,7 +59,7 @@ class AssignmentCard(QFrame):
         outer.addWidget(inner,1); self._populate()
 
     def _populate(self):
-        # clear existing layout children (레이아웃/위젯 모두 제거)
+        # 레이아웃/위젯 모두 제거
         _clear_layout(self._cl)
         cl=self._cl
         hdr=QHBoxLayout(); hdr.setSpacing(8)
@@ -74,7 +73,7 @@ class AssignmentCard(QFrame):
         cl.addLayout(hdr)
         diff=_diff(self.data.get("deadline",""))
         dr=QHBoxLayout(); dr.setSpacing(8)
-        ic=QLabel(); ic.setPixmap(svg_pixmap("deadline",14,T("SUB"))); dr.addWidget(ic)
+        # deadline
         try:
             dt=datetime.strptime(self.data.get("deadline",""),"%Y-%m-%d %H:%M")
             dl_str=dt.strftime("%Y.%m.%d  %H:%M")
@@ -93,7 +92,8 @@ class AssignmentCard(QFrame):
         self._tl=QVBoxLayout(self._tw); self._tl.setContentsMargins(0,0,0,0); self._tl.setSpacing(3)
         cl.addWidget(self._tw); self._build_tasks()
         abr=QHBoxLayout()
-        ab=mk_btn("  할일 추가",T("PRI_L"),T("PRI"),9,6,"5px 12px","plus",T("PRI"))
+        
+        ab=mk_btn("할일 추가",T("PRI_L"),T("PRI"),9,6,"5px 12px","plus",T("PRI"))
         ab.clicked.connect(self._add_task); abr.addWidget(ab); abr.addStretch(); cl.addLayout(abr)
         self._sw=QWidget(); self._sw.setStyleSheet("background:transparent;")
         self._sl=QHBoxLayout(self._sw); self._sl.setContentsMargins(0,0,0,0)
@@ -150,7 +150,7 @@ class AssignmentCard(QFrame):
         if prog==100: self._show_submit()
 
     def _show_submit(self):
-        b=mk_btn("  제출 완료  —  목록에서 삭제",T("GRN"),"white",10,8,"9px 18px","check","white")
+        b=mk_btn("제출 완료  —  목록에서 삭제",T("GRN"),"white",10,8,"9px 18px","check","white")
         b.clicked.connect(self._submit_done); self._sl.addWidget(b); self._sl.addStretch()
 
     def _submit_done(self):
@@ -203,7 +203,7 @@ class ExamCard(QFrame):
         outer.addWidget(inner,1); self._populate()
 
     def _populate(self):
-        # clear existing layout children (레이아웃/위젯 모두 제거)
+        # 레이아웃/위젯 모두 제거
         _clear_layout(self._cl)
         cl=self._cl
         hdr=QHBoxLayout(); hdr.setSpacing(8)
@@ -216,17 +216,17 @@ class ExamCard(QFrame):
         cl.addLayout(hdr)
         diff=_diff(self.data.get("date",""),"%Y-%m-%d")
         ir=QHBoxLayout(); ir.setSpacing(10)
-        di=QLabel(); di.setPixmap(svg_pixmap("deadline",14,T("SUB"))); ir.addWidget(di)
+        # deadline
         ir.addWidget(lbl(self.data.get("date",""),10,False,T("SUB")))
         if diff is not None: ir.addWidget(dbadge(_dt(diff),_dc(diff)))
         place=self.data.get("place","")
         if place:
-            pi=QLabel(); pi.setPixmap(svg_pixmap("loc",14,T("SUB"))); ir.addWidget(pi)
+            # 위치
             ir.addWidget(lbl(place,10,False,T("SUB")))
         ir.addStretch(); cl.addLayout(ir)
         rng=self.data.get("range","")
         if rng:
-            rb=QFrame(); rb.setStyleSheet(f"background:{T('GL')};border-radius:8px;border:1px solid {T('BDR')};")
+            rb=QFrame(); rb.setStyleSheet(f"background:{T('GL')};border-radius:8px;")
             rl=QVBoxLayout(rb); rl.setContentsMargins(12,8,12,8); rl.setSpacing(3)
             rl.addWidget(lbl("시험 범위",9,True,T("SUB")))
             rl.addWidget(lbl(rng,10,False,T("TXT"),wrap=True)); cl.addWidget(rb)
@@ -235,7 +235,6 @@ class ExamCard(QFrame):
         for key,icon_n,lt in FIXED:
             row=QWidget(); row.setStyleSheet("background:transparent;")
             rl=QHBoxLayout(row); rl.setContentsMargins(0,0,0,0); rl.setSpacing(8)
-            ic=QLabel(); ic.setPixmap(svg_pixmap(icon_n,16,T("PRI"))); rl.addWidget(ic)
             cb=QCheckBox(lt); cb.setChecked(self.data.get(key,False))
             cb.setStyleSheet(f"QCheckBox{{color:{T('TXT')};font-size:10pt;background:transparent;spacing:8px;}}QCheckBox::indicator{{width:16px;height:16px;border-radius:4px;border:2px solid {T('BDR')};background:{T('CARD')};}}QCheckBox::indicator:checked{{background:{self.color};border:2px solid {self.color};}}")
             cb.stateChanged.connect(lambda s,k=key: self._tog_fixed(k,s))
@@ -244,7 +243,7 @@ class ExamCard(QFrame):
         self._el=QVBoxLayout(self._ew); self._el.setContentsMargins(0,0,0,0); self._el.setSpacing(3)
         cl.addWidget(self._ew); self._build_extra()
         ar=QHBoxLayout()
-        ab=mk_btn("  항목 추가","#FEE2E2",T("RED"),9,6,"5px 12px","plus",T("RED"))
+        ab=mk_btn("항목 추가","#FEE2E2",T("RED"),9,6,"5px 12px","plus",T("RED"))
         ab.clicked.connect(self._add_extra); ar.addWidget(ab); ar.addStretch(); cl.addLayout(ar)
 
     def contextMenuEvent(self, event):
@@ -303,3 +302,22 @@ class ExamCard(QFrame):
         if dlg.exec_()==QDialog.Accepted:
             self.on_save()
             self.deleted.emit(self.data["id"])
+
+def add_svg_icon_if_exists(layout, icon_name, size=16, color=None, add_as_label=True, stretch=0):
+    """
+    svg_pixmap으로 픽스맵을 만든 뒤 유효하면 layout에 QLabel로 추가.
+    사용 예:
+        add_svg_icon_if_exists(hbox, "loc", 14, "#7D7D7D")
+    """
+    pm = svg_pixmap(icon_name, size, color)
+    if pm is None or pm.isNull():
+        return None
+    lbl = QLabel()
+    lbl.setPixmap(pm)
+    lbl.setFixedSize(size, size)
+    lbl.setScaledContents(True)
+    if stretch:
+        layout.addWidget(lbl, stretch)
+    else:
+        layout.addWidget(lbl)
+    return lbl

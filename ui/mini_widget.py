@@ -3,9 +3,9 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore    import *
 from PyQt5.QtGui     import *
 from datetime        import datetime
-from core.theme      import T, dk, subj_color, dday_color, icon_color_on
+from core.theme      import T, dk, subj_color, dday_color, icon_color_on, is_dark
 from core.data       import calc_progress
-from core.assets     import svg_icon, svg_pixmap
+from core.assets     import svg_icon, svg_pixmap, app_icon
 from ui.base_widgets import lbl, sbadge, dbadge, ToggleSwitch
 
 
@@ -25,7 +25,6 @@ def _dt(d):
     return f"D-{d}"
 
 def _clear_layout(layout):
-    """재귀적으로 레이아웃 내부의 위젯/레이아웃을 제거"""
     if layout is None: return
     while layout.count():
         item = layout.takeAt(0)
@@ -47,7 +46,7 @@ class ChecklistPopup(QFrame):
         super().__init__(None,Qt.Tool|Qt.FramelessWindowHint|Qt.WindowStaysOnTopHint)
         self.item=item_data; self.itype=itype; self.color=color; self.on_save=on_save
         self.setFixedWidth(290)
-        self.setStyleSheet(f"QFrame{{background:{T('CARD')};border:1.5px solid {T('BDR')};border-radius:14px;}}")
+        self.setStyleSheet(f"QFrame{{background:{T('CARD')};border-radius:14px;border:1px solid {T('BDR')};}}")
         sh=QGraphicsDropShadowEffect(self); sh.setBlurRadius(22); sh.setOffset(0,5); sh.setColor(QColor(0,0,0,45))
         self.setGraphicsEffect(sh); self._build()
 
@@ -65,11 +64,10 @@ class ChecklistPopup(QFrame):
         if self.itype=="assignment":
             for task in self.item.get("tasks",[]): bl.addWidget(self._task_row(task,False))
         else:
-            FIXED=[("read1","first","1회독"),("read2","second","2회독"),("read_extra","more","추가 회독")]
-            for key,icon_n,lt in FIXED:
+            FIXED=[("read1","1회독"),("read2","2회독"),("read_extra","추가 회독")]
+            for key,lt in FIXED:
                 row=QWidget(); row.setStyleSheet("background:transparent;")
                 rl=QHBoxLayout(row); rl.setContentsMargins(0,0,0,0); rl.setSpacing(8)
-                ic=QLabel(); ic.setPixmap(svg_pixmap(icon_n,14,T("PRI"))); rl.addWidget(ic)
                 cb=QCheckBox(lt); cb.setChecked(self.item.get(key,False))
                 cb.setStyleSheet(f"QCheckBox{{color:{T('TXT')};font-size:9pt;background:transparent;spacing:6px;}}QCheckBox::indicator{{width:14px;height:14px;border-radius:3px;border:2px solid {T('BDR')};background:{T('CARD')};}}QCheckBox::indicator:checked{{background:{self.color};border:2px solid {self.color};}}")
                 cb.stateChanged.connect(lambda s,k=key: self._tog_fixed(k,s))
@@ -126,17 +124,15 @@ class MiniWidget(QWidget):
         return subj_color(item.get("subject","?"),self._cmap)
 
     def _build(self):
-        # 기존 레이아웃/위젯 제거해서 테마 변경 시 스타일이 즉시 반영되도록 함
         existing = self.layout()
         if existing:
             _clear_layout(existing)
             try:
-                QWidget().setLayout(existing)  # detach
+                QWidget().setLayout(existing)
             except Exception:
                 pass
 
         outer=QVBoxLayout(self); outer.setContentsMargins(8,8,8,8); outer.setSpacing(0)
-        # 프레임 재생성
         self._frame=QFrame(); self._frame.setObjectName("mf")
         self._frame.setStyleSheet(f"QFrame#mf{{background:{T('CARD')};border-radius:16px;border:1px solid {T('BDR')};}}")
         self._frame.setFixedWidth(320)
@@ -146,27 +142,29 @@ class MiniWidget(QWidget):
         tbar=QWidget(); tbar.setStyleSheet(f"background:{T('PRI')};border-radius:16px 16px 0 0;"); tbar.setFixedHeight(42)
         tbl=QHBoxLayout(tbar); tbl.setContentsMargins(12,0,8,0); tbl.setSpacing(6)
         ob=QPushButton(); ob.setFixedSize(28,28); ob.setCursor(Qt.PointingHandCursor); ob.setToolTip("메인 창 열기")
-        # header icon 색은 헤더 배경(T('PRI'))에 따라 자동 결정
-        ob.setIcon(svg_icon("homework",16,icon_color_on(T("PRI")))); ob.setIconSize(QSize(16,16))
+        
+        ob.setIcon(app_icon(True)); ob.setIconSize(QSize(16,16))
         ob.setStyleSheet("QPushButton{background:rgba(255,255,255,0.18);border:none;border-radius:14px;}QPushButton:hover{background:rgba(255,255,255,0.32);}")
         ob.clicked.connect(self.open_main); tbl.addWidget(ob)
-        tbl.addWidget(lbl("StudyMate",10,True,"white")); tbl.addStretch()
-        # 설정 버튼 (미니 위젯 전용 설정 열기)
+        tbl.addStretch()
+
+        # 설정 버튼
         self._settings_btn=QPushButton(); self._settings_btn.setFixedSize(26,26); self._settings_btn.setCursor(Qt.PointingHandCursor)
-        # 아이콘 색은 tbar 배경 기준으로 결정
-        self._settings_btn.setIcon(svg_icon("widgetsetting",14,icon_color_on(T("PRI")))); self._settings_btn.setIconSize(QSize(14,14))
+        self._settings_btn.setIcon(svg_icon("setting",14,"#ffffff")); self._settings_btn.setIconSize(QSize(14,14))
         self._settings_btn.setStyleSheet("QPushButton{background:rgba(255,255,255,0.12);border:none;border-radius:13px;}QPushButton:hover{background:rgba(255,255,255,0.26);}")
         self._settings_btn.setToolTip("미니 위젯 설정")
         self._settings_btn.clicked.connect(self._toggle_widget_settings); tbl.addWidget(self._settings_btn)
         self._lock_btn=QPushButton(); self._lock_btn.setFixedSize(26,26); self._lock_btn.setCursor(Qt.PointingHandCursor)
         self._lock_btn.setCheckable(True); self._lock_btn.setToolTip("위치 잠금")
-        # lock icon color also chosen based on header bg
-        self._lock_btn.setIcon(svg_icon("setting",14,icon_color_on(T("PRI")))); self._lock_btn.setIconSize(QSize(14,14))
+
+        # 잠금 아이콘: 비활성 pinned, 활성 pinned_x
+        self._lock_btn.setIcon(svg_icon("pinned",14,"#ffffff")); self._lock_btn.setIconSize(QSize(14,14))
         self._lock_btn.setStyleSheet("QPushButton{background:rgba(255,255,255,0.15);border:none;border-radius:13px;}QPushButton:hover{background:rgba(255,255,255,0.3);}")
         self._lock_btn.clicked.connect(self._toggle_lock); tbl.addWidget(self._lock_btn); ml.addWidget(tbar)
         body=QWidget(); body.setStyleSheet("background:transparent;")
         bl=QVBoxLayout(body); bl.setContentsMargins(12,10,12,0); bl.setSpacing(8)
         cfg=self.data.get("widget_config",{})
+        
         if cfg.get("show_timer",True):
             tw=QWidget(); tw.setStyleSheet(f"background:{T('GL')};border-radius:10px;")
             tl=QVBoxLayout(tw); tl.setContentsMargins(12,10,12,10); tl.setSpacing(6)
@@ -174,22 +172,28 @@ class MiniWidget(QWidget):
             self._time_lbl.setStyleSheet(f"color:{T('TXT')};font-size:22pt;font-weight:bold;background:transparent;letter-spacing:2px;")
             tl.addWidget(self._time_lbl)
             br=QHBoxLayout(); br.setSpacing(6)
-            self._s_btn=QPushButton("▶  시작"); self._s_btn.setCursor(Qt.PointingHandCursor)
+            self._s_btn=QPushButton("시작"); self._s_btn.setCursor(Qt.PointingHandCursor)
             self._s_btn.setStyleSheet(f"QPushButton{{background:{T('PRI')};color:white;border:none;border-radius:7px;padding:5px 0;font-size:9pt;font-weight:bold;}}QPushButton:hover{{background:{dk(T('PRI'))};}}")
+            self._s_btn.setIcon(svg_icon("play",14,icon_color_on(T("PRI")))); self._s_btn.setIconSize(QSize(14,14))
             self._s_btn.clicked.connect(self._start)
-            self._p_btn=QPushButton("⏸  일시정지"); self._p_btn.setCursor(Qt.PointingHandCursor); self._p_btn.setEnabled(False)
-            self._p_btn.setStyleSheet(f"QPushButton{{background:{T('ORG')};color:white;border:none;border-radius:7px;padding:5px 0;font-size:9pt;font-weight:bold;}}QPushButton:disabled{{background:{T('BDR')};color:{T('SUB')};}}QPushButton:hover:!disabled{{background:{dk(T('ORG'))};}}")
+
+            self._p_btn=QPushButton("일시정지"); self._p_btn.setCursor(Qt.PointingHandCursor); self._p_btn.setEnabled(False); self._p_btn.hide();
+            self._p_btn.setStyleSheet(f"QPushButton{{background:{T('PRI')};color:white;border:none;border-radius:7px;padding:5px 0;font-size:9pt;font-weight:bold;}}QPushButton:disabled{{background:{T('BDR')};color:{T('SUB')};}}QPushButton:hover:!disabled{{background:{dk(T('PRI'))};}}")
+            self._p_btn.setIcon(svg_icon("pause",14,T("SUB") if not self._p_btn.isEnabled() else icon_color_on(T("ORG")))); self._p_btn.setIconSize(QSize(14,14))
             self._p_btn.clicked.connect(self._pause)
-            self._x_btn=QPushButton("⏹  중단"); self._x_btn.setCursor(Qt.PointingHandCursor); self._x_btn.setEnabled(False)
+
+            self._x_btn=QPushButton("중단"); self._x_btn.setCursor(Qt.PointingHandCursor); self._x_btn.setEnabled(False)
             self._x_btn.setStyleSheet(f"QPushButton{{background:{T('BDR')};color:{T('SUB')};border:none;border-radius:7px;padding:5px 0;font-size:9pt;font-weight:bold;}}QPushButton:enabled:hover{{background:{T('RED')};color:white;}}")
+            self._x_btn.setIcon(svg_icon("stop",14,T("SUB"))); self._x_btn.setIconSize(QSize(14,14))
             self._x_btn.clicked.connect(self._stop)
+
             for b in [self._s_btn,self._p_btn,self._x_btn]: br.addWidget(b,1)
             tl.addLayout(br); bl.addWidget(tw)
+
         tabw=QWidget(); tabw.setStyleSheet(f"background:{T('GL')};border-radius:10px;")
         tabl=QHBoxLayout(tabw); tabl.setContentsMargins(4,4,4,4); tabl.setSpacing(4)
-        self._ta=QPushButton(); self._ta.setText("  과제"); self._ta.setCursor(Qt.PointingHandCursor); self._ta.setCheckable(True)
-        self._te=QPushButton(); self._te.setText("  시험"); self._te.setCursor(Qt.PointingHandCursor); self._te.setCheckable(True)
-        # autoExclusive으로 버튼 그룹 동작 보장
+        self._ta=QPushButton(); self._ta.setText("과제"); self._ta.setCursor(Qt.PointingHandCursor); self._ta.setCheckable(True)
+        self._te=QPushButton(); self._te.setText("시험"); self._te.setCursor(Qt.PointingHandCursor); self._te.setCheckable(True)
         self._ta.setAutoExclusive(True); self._te.setAutoExclusive(True)
         for btn,key in [(self._ta,"assignment"),(self._te,"exam")]:
             btn.clicked.connect(lambda _,k=key: self._switch_tab(k)); tabl.addWidget(btn,1)
@@ -198,21 +202,16 @@ class MiniWidget(QWidget):
         self._list_w=QWidget(); self._list_w.setStyleSheet("background:transparent;")
         self._list_l=QVBoxLayout(self._list_w); self._list_l.setContentsMargins(0,0,0,0); self._list_l.setSpacing(6)
         lsc.setWidget(self._list_w); bl.addWidget(lsc); ml.addWidget(body); self._refresh_list()
-        # 초기 상태 보장
         self._switch_tab(self._cur_tab)
-        # show 상태 유지: 이미 보이는 상태라면 다시 보이도록
         if self.isVisible():
             self.show()
 
     def _upd_tab_style(self):
         for btn,key in [(self._ta,"assignment"),(self._te,"exam")]:
             active=key==self._cur_tab
-            ic_col=T("CARD") if active else T("SUB")
-            icon_n="homework" if key=="assignment" else "exam"
-            btn.setIcon(svg_icon(icon_n,14,ic_col)); btn.setIconSize(QSize(14,14))
             btn.setChecked(active)
             if active: btn.setStyleSheet(f"QPushButton{{background:{T('PRI')};color:white;border:none;border-radius:7px;padding:5px 8px;font-size:9pt;font-weight:bold;}}")
-            else: btn.setStyleSheet(f"QPushButton{{background:transparent;color:{T('SUB')};border:none;border-radius:7px;padding:5px 8px;font-size:9pt;}}QPushButton:hover{{background:{T('BDR')};color:{T('TXT')};}}")
+            else: btn.setStyleSheet(f"QPushButton{{background:transparent;color:{T('SUB')};border:none;border-radius:7px;padding:5px 8px;font-size:9pt;font-weight:normal;}}QPushButton:hover{{background:{T('BDR')};color:{T('TXT')};}}")
 
     def _switch_tab(self,key): self._cur_tab=key; self._upd_tab_style(); self._refresh_list()
 
@@ -270,7 +269,15 @@ class MiniWidget(QWidget):
         self._popup.move(px,gpos.y()+50); self._popup.show()
 
     def _save_refresh(self): self.on_save(); self._refresh_list(); self.data_changed.emit()
-    def _toggle_lock(self): self._locked=self._lock_btn.isChecked()
+
+    def _toggle_lock(self):
+        # 토글 상태에 따라 아이콘을 변경하고 내부 잠금 상태를 갱신
+        checked = self._lock_btn.isChecked()
+        self._locked = checked
+        if checked:
+            self._lock_btn.setIcon(svg_icon("pinned_x",14,"#ffffff"))
+        else:
+            self._lock_btn.setIcon(svg_icon("pinned",14,"#ffffff"))
 
     def set_always_on_top(self,on):
         flags=self.windowFlags()
@@ -284,7 +291,7 @@ class MiniWidget(QWidget):
             self._settings_popup.hide(); return
         cfg=self.data.setdefault("widget_config",{})
         popup=QFrame(None, Qt.Tool|Qt.FramelessWindowHint|Qt.WindowStaysOnTopHint)
-        popup.setStyleSheet(f"QFrame{{background:{T('CARD')};border:1.5px solid {T('BDR')};border-radius:10px;}}")
+        popup.setStyleSheet(f"QFrame{{background:{T('CARD')};border-radius:18px;}}")
         popup.setFixedWidth(260)
         vl=QVBoxLayout(popup); vl.setContentsMargins(12,10,12,10); vl.setSpacing(8)
         vl.addWidget(lbl("미니 위젯 표시 항목",11,True))
@@ -314,13 +321,23 @@ class MiniWidget(QWidget):
         self._time_lbl.setText(f"{h:02d}:{m:02d}:{s:02d}")
 
     def _start(self):
+        self._s_btn.hide()
+        self._p_btn.show()
+
         self._running=True; self._timer.start(); self._inact.start()
-        self._s_btn.setText("▶  실행 중"); self._s_btn.setEnabled(False)
-        self._p_btn.setEnabled(True); self._x_btn.setEnabled(True)
+        self._s_btn.setText("실행 중"); self._s_btn.setEnabled(False)
+        self._p_btn.setEnabled(True); self._p_btn.setIcon(svg_icon("pause",14,icon_color_on(T("BDR"))))
+        self._x_btn.setEnabled(True); self._x_btn.setIcon(svg_icon("stop",14,icon_color_on(T("RED"))))
 
     def _pause(self):
+        self._p_btn.hide()
+        self._s_btn.show()
+
         self._running=False; self._timer.stop(); self._inact.stop()
-        self._s_btn.setText("▶  시작"); self._s_btn.setEnabled(True); self._p_btn.setEnabled(False)
+        self._s_btn.setText("시작"); self._s_btn.setEnabled(True); self._p_btn.setEnabled(False)
+        
+        self._p_btn.setIcon(svg_icon("pause",14,T("SUB")))
+        self._x_btn.setIcon(svg_icon("stop",14,T("SUB")))
 
     def _auto_pause(self):
         if self._running: self._pause()
@@ -328,8 +345,14 @@ class MiniWidget(QWidget):
     def _stop(self):
         self._running=False; self._timer.stop(); self._inact.stop()
         self._elapsed=0; self._time_lbl.setText("00:00:00")
-        self._s_btn.setText("▶  시작"); self._s_btn.setEnabled(True)
+        
+        self._p_btn.hide()
+        self._s_btn.show()
+
+        self._s_btn.setText("시작"); self._s_btn.setEnabled(True)
         self._p_btn.setEnabled(False); self._x_btn.setEnabled(False)
+        self._p_btn.setIcon(svg_icon("pause",14,T("SUB")))
+        self._x_btn.setIcon(svg_icon("stop",14,T("SUB")))
 
     def reset_inactivity(self):
         if self._running: self._inact.start()

@@ -10,9 +10,8 @@ from ui.base_widgets import lbl, mk_btn, ghost_btn, inp_style, foot_row, Checkli
 from ui.dialogs.calendar_dialog import CalendarDialog
 
 
-# ── 날짜 선택 전용 위젯 ───────────────────────────────────────────
+# 날짜 선택 전용 위젯
 class _DateButton(QFrame):
-    """클릭 또는 포커스 후 Enter 키로 캘린더를 열도록 설계된 커스텀 위젯."""
     clicked = pyqtSignal()
 
     def __init__(self, text="", parent=None):
@@ -48,13 +47,12 @@ class _DateButton(QFrame):
             f"border-radius:8px;}}"
         )
 
-    # ── 이벤트 처리 ──────────────────────────────────────────────
+    # 이벤트 처리
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
             self.clicked.emit()
 
     def keyPressEvent(self, e):
-        # 포커스가 이미 이 위젯에 있을 때 Enter → 캘린더 열기
         if e.key() in (Qt.Key_Return, Qt.Key_Enter):
             self.clicked.emit()
         else:
@@ -69,7 +67,7 @@ class _DateButton(QFrame):
         super().focusOutEvent(e)
 
 
-# ── 다이얼로그 본체 ───────────────────────────────────────────────
+# 다이얼로그 본체
 class AddAssignmentDialog(QDialog):
     def __init__(self, parent=None, initial=None):
         super().__init__(parent)
@@ -118,7 +116,7 @@ class AddAssignmentDialog(QDialog):
         bl.setContentsMargins(24, 16, 24, 16)
         bl.setSpacing(14)
 
-        # ① 과제 이름 → Enter → 과목명
+        # 1. 과제 이름
         self.f_name = QLineEdit()
         self.f_name.setPlaceholderText("예) 데이터구조 4주차 과제")
         self.f_name.setStyleSheet(inp_style())
@@ -126,7 +124,7 @@ class AddAssignmentDialog(QDialog):
             lambda: QTimer.singleShot(0, lambda: self.f_subj.setFocus())
         )
 
-        # ② 과목명 → Enter → 날짜 버튼으로 포커스만 이동
+        # 2. 과목명
         self.f_subj = QLineEdit()
         self.f_subj.setPlaceholderText("예) 데이터구조론")
         self.f_subj.setStyleSheet(inp_style())
@@ -134,7 +132,7 @@ class AddAssignmentDialog(QDialog):
             lambda: QTimer.singleShot(0, lambda: self._dl_btn.setFocus())
         )
 
-        # ③ 날짜 버튼 (_DateButton: Enter 키와 clicked가 완전 분리됨)
+        # 3. 날짜 버튼
         self._dl_btn = _DateButton("  " + self._deadline)
         ic = svg_icon("deadline", 15, T("SUB"))
         if ic:
@@ -148,7 +146,7 @@ class AddAssignmentDialog(QDialog):
             self.f_subj.setText(self._initial.get("subject", ""))
             items = self._initial.get("tasks", [])
 
-        # ④ 세부 할일 목록
+        # 4. 세부 할일 목록
         self._task_ed = ChecklistEditor(items=items, placeholder="할 일을 입력하세요")
         task_sc = QScrollArea()
         task_sc.setWidgetResizable(True)

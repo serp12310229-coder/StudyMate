@@ -156,7 +156,7 @@ class TrashTab(QWidget):
         cl=QVBoxLayout(con); cl.setContentsMargins(20,8,20,20); cl.setSpacing(10)
         for item in items:
             row=QFrame()
-            row.setStyleSheet(f"QFrame{{background:{T('CARD')};border-radius:12px;border:1.5px solid {T('BDR')};}}")
+            row.setStyleSheet(f"QFrame{{background:{T('CARD')};border-radius:12px;}}")
             rl=QHBoxLayout(row); rl.setContentsMargins(16,12,16,12); rl.setSpacing(10)
             name=item.get("name") or item.get("subject","")
             rl.addWidget(lbl(name,11,True))

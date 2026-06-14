@@ -4,9 +4,18 @@ from PyQt5.QtGui  import QFontDatabase, QFont, QIcon, QPixmap, QPainter, QImage
 from PyQt5.QtSvg  import QSvgRenderer
 from PyQt5.QtCore import Qt, QByteArray
 
-_BASE    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ICON_DIR = os.path.join(_BASE, "assets", "icons")
-FONT_DIR = os.path.join(_BASE, "assets", "fonts")
+def resource_path(relative_path):
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__))
+        )
+
+    return os.path.join(base_path, relative_path)
+
+ICON_DIR = resource_path(os.path.join("assets", "icons"))
+FONT_DIR = resource_path(os.path.join("assets", "fonts"))
 _FAM     = ""
 
 def setup_font():
